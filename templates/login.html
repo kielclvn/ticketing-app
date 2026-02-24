@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Ticket System</title>
+    <!DOCTYPE html> <html lang="en"> <head> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- important for mobile scaling --> <title>Login - Ticket System</title> <style> body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 0; text-align: center; } h1 { color: #333; margin: 25px 0; } .login-box { margin: 40px auto; width: 90%; max-width: 350px; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.15); } input[type=text], input[type=password] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; } button { width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 1em; cursor: pointer; margin-top: 15px; } button:hover { background: #45a049; } .nav-links { margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; } .nav-links a { flex: 1 1 auto; min-width: 120px; padding: 10px; background: #e8f5e9; border-radius: 6px; text-decoration: none; color: #4CAF50; font-weight: bold; text-align: center; } .nav-links a:hover { background: #c8e6c9; } </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>🔑 Staff Login</h1>
+        <form method="POST" action="/login">
+            <input type="text" name="username" placeholder="Username" required><br>
+            <input type="password" name="password" placeholder="Password" required><br>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</body>
+</html>

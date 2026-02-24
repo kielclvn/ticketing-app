@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>COE WEEK 2026 Ticket Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f0f0; text-align: center; }
+        h1 { color: #333; margin-top: 30px; }
+        .form-box {
+            margin: 40px auto;
+            width: 420px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.15);
+            text-align: left;
+        }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        button:hover { background: #45a049; }
+        .nav-links {
+            margin-top: 25px;
+            text-align: center;
+        }
+        .nav-links a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>🎟️ COE WEEK 2026 Ticket Generator</h1>
+    <div class="form-box">
+        <form action="/generate" method="post">
+
+            <!-- Section Dropdown -->
+            <label for="section">Choose Section:</label>
+            <select name="section" id="section" required>
+                <option value="BSE English 1A">BSE English 1A</option>
+                <option value="BSE English 2A">BSE English 2A</option>
+                <option value="BSE English 3A">BSE English 3A</option>
+                <option value="BSE English 4A">BSE English 4A</option>
+                <option value="BSE Filipino 1B">BSE Filipino 1B</option>
+                <option value="BSE Filipino 2B">BSE Filipino 2B</option>
+                <option value="BSE Filipino 3B">BSE Filipino 3B</option>
+                <option value="BSE Filipino 4B">BSE Filipino 4B</option>
+                <option value="BEED 1C">BEED 1C</option>
+                <option value="BEED 2C">BEED 2C</option>
+                <option value="BEED 3C">BEED 3C</option>
+                <option value="BEED 3D">BEED 3D</option>
+                <option value="BEED 4C">BEED 4C</option>
+                <option value="BEED 4D">BEED 4D</option>
+                <option value="BSHM 1D">BSHM 1D</option>
+                <option value="BSHM 1E">BSHM 1E</option>
+                <option value="BSHM 2D">BSHM 2D</option>
+                <option value="BSHM 2E">BSHM 2E</option>
+                <option value="BSHM 3E">BSHM 3E</option>
+                <option value="BSHM 3F">BSHM 3F</option>
+                <option value="CALSCO">CALSCO</option>
+                <option value="Alumni">Alumni</option>
+            </select>
+
+            <!-- Number of Tickets Dropdown -->
+            <label for="count">Number of Tickets:</label>
+            <select name="count" id="count" required>
+                {% for i in range(1, 101) %}
+                    <option value="{{ i }}">{{ i }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- Ticket Type Dropdown -->
+            <label for="ticket_type">Ticket Type:</label>
+            <select name="ticket_type" id="ticket_type" required>
+                <option value="Student">Student</option>
+                <option value="VIP">VIP</option>
+            </select>
+
+            <button type="submit">Generate Tickets</button>
+        </form>
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="nav-links">
+        <a href="/admin">📊 Admin Dashboard</a>
+        <a href="/scanner">📷 Ticket Scanner</a>
+        <a href="/results">📑 Last Results</a>
+        <a href="/logout">Logout</a>
+    </div>
+</body>
+</html>

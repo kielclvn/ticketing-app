@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scanner - Ticket System</title>
+    <style> body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; } h1 { color: #333; text-align: center; margin: 20px 0; } .section-block, .logs-block { margin: 20px auto; width: 95%; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); } table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 0.9em; } th, td { border: 1px solid #ccc; padding: 6px; text-align: center; } th { background-color: #4CAF50; color: white; font-size: 0.95em; } .valid { color: green; font-weight: bold; } .used, .invalid { color: red; font-weight: bold; } select, button, input { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; font-size: 0.9em; } button { background: #4CAF50; color: white; cursor: pointer; font-weight: bold; } button:hover { background: #45a049; } .export-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 15px auto; width: 95%; } .export-buttons form { flex: 1 1 auto; min-width: 140px; } .export-buttons button { width: 100%; } .search-box { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; } .search-box input, .search-box select { flex: 1 1 auto; min-width: 120px; } .pagination { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; } .pagination button { padding: 5px 10px; font-size: 0.85em; } .flash-row { animation: highlight 1.5s ease; } @keyframes highlight { from { background-color: #ffff99; } to { background-color: transparent; } } </style>
+    <!-- Include QR Scanner library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+    <div class="scanner-box">
+        <h1>🎟️ Ticket Scanner</h1>
+        <div id="reader" style="width:100%;"></div>
+        <div id="result">Scan a QR code to verify...</div>
+        <br>
+        <a href="/logout">Logout</a>
+    </div>
+
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            fetch("/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ticket_id: decodedText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                let resultDiv = document.getElementById("result");
+                resultDiv.innerText = data.message;
+                resultDiv.className = data.status;
+            })
+            .catch(err => {
+                document.getElementById("result").innerText = "❌ Error verifying ticket";
+            });
+        }
+
+        function onScanFailure(error) {
+            // Ignore scan errors (common when no QR is in view)
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 }
+        );
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+</body>
+</html>

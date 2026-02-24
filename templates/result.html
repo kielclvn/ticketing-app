@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- important for mobile scaling -->
+    <title>Tickets Generated - COE WEEK 2026</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 0; text-align: center; }
+        h1 { color: #333; margin: 20px 0; }
+        p { font-size: 1.1em; margin: 10px; }
+        ul { list-style: none; padding: 0; margin: 20px auto; max-width: 600px; }
+        li {
+            background: #fff;
+            margin: 10px auto;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            text-align: left;
+            font-size: 1em;
+        }
+        li strong { color: #4CAF50; }
+        a {
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+            word-break: break-word; /* prevents overflow on small screens */
+        }
+        a:hover { text-decoration: underline; }
+        .download-links {
+            margin: 20px auto;
+        }
+        .download-links a {
+            display: inline-block;
+            margin: 10px;
+            padding: 12px 18px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1em;
+        }
+        .download-links a:hover { background: #45a049; }
+        .nav-links {
+            margin: 25px auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+        .nav-links a {
+            flex: 1 1 auto;
+            min-width: 120px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+            text-align: center;
+        }
+        .nav-links a:hover { background: #c8e6c9; }
+    </style>
+</head>
+<body>
+    <h1>✅ Tickets Generated</h1>
+    <p>{{ count }} tickets created for <strong>{{ section }}</strong></p>
+
+    <ul>
+        {% for id, pdf_path in ids %}
+            <li>
+                <strong>{{ id }}</strong><br>
+                <a href="{{ pdf_path }}" target="_blank">📄 Download Ticket</a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <!-- ZIP Download -->
+    <div class="download-links">
+        <a href="/download_zip">⬇️ Download All Tickets (ZIP)</a>
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="nav-links">
+        <a href="/form">🎟️ Generate More</a>
+        <a href="/admin">📊 Admin Dashboard</a>
+        <a href="/scanner">📷 Ticket Scanner</a>
+        <a href="/logout">Logout</a>
+    </div>
+</body>
+</html>

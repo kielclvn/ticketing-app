@@ -1,0 +1,5 @@
+flask
+gunicorn
+pillow
+mysql-connector-python
+xlsxwriter

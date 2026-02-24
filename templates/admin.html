@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard - Tickets</title>
+    <style> body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; } 
+    h1 { color: #333; text-align: center; margin: 20px 0; } 
+    .section-block, .logs-block { 
+        margin: 20px auto; 
+        width: 95%; 
+        background: #fff; 
+        padding: 15px; 
+        border-radius: 8px; 
+        box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+        } table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin-top: 10px; 
+            font-size: 0.9em; 
+            } 
+            th, td { 
+                border: 1px solid #ccc; 
+                padding: 6px; 
+                text-align: center; 
+                } 
+                th { background-color: #4CAF50; 
+                color: white; 
+                font-size: 0.95em; 
+                } 
+                .valid { color: green; font-weight: bold; } 
+                .used, .invalid { color: red; font-weight: bold; } 
+                select, button, input { 
+                    padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; font-size: 0.9em; } button { background: #4CAF50; color: white; cursor: pointer; font-weight: bold; } button:hover { background: #45a049; } .export-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 15px auto; width: 95%; } .export-buttons form { flex: 1 1 auto; min-width: 140px; } .export-buttons button { width: 100%; } .search-box { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; } .search-box input, .search-box select { flex: 1 1 auto; min-width: 120px; } .pagination { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; } .pagination button { padding: 5px 10px; font-size: 0.85em; } .flash-row { animation: highlight 1.5s ease; } @keyframes highlight { from { background-color: #ffff99; } to { background-color: transparent; } } </style>
+    <script>
+        function searchTickets(sectionId) {
+            let input = document.getElementById("search-" + sectionId).value.toLowerCase();
+            let rows = document.querySelectorAll("#table-" + sectionId + " tbody tr");
+            rows.forEach(row => {
+                let ticketId = row.cells[0].innerText.toLowerCase();
+                if (ticketId.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        function filterStatus(sectionId) {
+            let filter = document.getElementById("status-" + sectionId).value;
+            let rows = document.querySelectorAll("#table-" + sectionId + " tbody tr");
+            rows.forEach(row => {
+                let status = row.cells[2].innerText.toLowerCase();
+                if (filter === "" || status === filter.toLowerCase()) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        function paginate(sectionId, pageSize, pageNum) {
+            let rows = document.querySelectorAll("#table-" + sectionId + " tbody tr");
+            let start = (pageNum - 1) * pageSize;
+            let end = start + pageSize;
+            rows.forEach((row, index) => {
+                if (index >= start && index < end) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            let totalPages = Math.ceil(rows.length / pageSize);
+            let paginationDiv = document.getElementById("pagination-" + sectionId);
+            paginationDiv.innerHTML = "";
+            for (let i = 1; i <= totalPages; i++) {
+                let btn = document.createElement("button");
+                btn.innerText = i;
+                btn.onclick = () => paginate(sectionId, pageSize, i);
+                if (i === pageNum) btn.style.backgroundColor = "#45a049";
+                paginationDiv.appendChild(btn);
+            }
+        }
+
+        function changePageSize(sectionId) {
+            let pageSize = parseInt(document.getElementById("pagesize-" + sectionId).value);
+            paginate(sectionId, pageSize, 1);
+        }
+    </script>
+</head>
+<body>
+    <h1>📊 Admin Dashboard</h1>
+
+    <!-- Export + Reset Buttons -->
+    <div class="export-buttons">
+        <form method="get" action="/export_csv" style="display:inline;">
+            {% if section_filter %}
+                <input type="hidden" name="section" value="{{ section_filter }}">
+            {% endif %}
+            <button type="submit">⬇️ Export Tickets to CSV</button>
+        </form>
+
+        <form method="get" action="/export_excel" style="display:inline;">
+            {% if section_filter %}
+                <input type="hidden" name="section" value="{{ section_filter }}">
+            {% endif %}
+            <button type="submit">⬇️ Export Tickets to Excel</button>
+        </form>
+
+        <form method="get" action="/export_logs_csv" style="display:inline;">
+            <button type="submit">⬇️ Export Scan Logs to CSV</button>
+        </form>
+
+        <form method="get" action="/export_logs_excel" style="display:inline;">
+            <button type="submit">⬇️ Export Scan Logs to Excel</button>
+        </form>
+
+        <form method="get" action="/reset" style="display:inline;">
+            <button type="submit" style="background:#d9534f;">🗑️ Reset Database</button>
+        </form>
+    </div>
+
+    <!-- Grouped Tickets with Summary Counts -->
+    {% for section, tickets in grouped.items() %}
+    <div class="section-block">
+        <h2>{{ section }}</h2>
+        <p>
+            ✅ Valid: {{ summary[section].valid }} |
+            ❌ Used: {{ summary[section].used }} |
+            ⚠️ Invalid: {{ summary[section].invalid }}
+        </p>
+
+        <div class="search-box">
+            <input type="text" id="search-{{ section }}" placeholder="Search Ticket ID..." onkeyup="searchTickets('{{ section }}')">
+            <select id="status-{{ section }}" onchange="filterStatus('{{ section }}')">
+                <option value="">-- All Status --</option>
+                <option value="valid">Valid</option>
+                <option value="used">Used</option>
+                <option value="invalid">Invalid</option>
+            </select>
+            <label for="pagesize-{{ section }}">Page Size:</label>
+            <select id="pagesize-{{ section }}" onchange="changePageSize('{{ section }}')">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+
+        <table id="table-{{ section }}">
+            <thead>
+                <tr>
+                    <th>Ticket ID</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                <tr>
+                    <td>{{ ticket[0] }}</td>
+                    <td>{{ ticket[1] }}</td>
+                    <td class="{{ ticket[2] }}">{{ ticket[2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination" id="pagination-{{ section }}"></div>
+        <script>
+            paginate("{{ section }}", 10, 1);
+        </script>
+    </div>
+    {% endfor %}
+
+    <!-- Recent Scans Panel -->
+    <div class="logs-block">
+        <h2>🕒 Recently Scanned Tickets</h2>
+        <table id="logs-table">
+            <thead>
+                <tr>
+                    <th>Ticket ID</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log[0] }}</td>
+                    <td class="{{ log[1] }}">{{ log[1] }}</td>
+                    <td>{{ log[2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Auto-refresh logs every 10 seconds with highlight effect
+        setInterval(() => {
+            fetch("/admin?ajax=logs")
+                .then(response => response.json())
+                .then(data => {
+                    let tbody = document.querySelector("#logs-table tbody");
+                    tbody.innerHTML = "";
+                    data.forEach(log => {
+                        let row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${log[0]}</td>
+                            <td class="${log[1]}">${log[1]}</td>
+                            <td>${log[2]}</td>
+                        `;
+                        tbody.appendChild(row);
+
+                                                // Flash effect for new rows
+                        row.classList.add("flash-row");
+                        setTimeout(() => row.classList.remove("flash-row"), 1500);
+                    });
+                });
+        }, 10000);
+    </script>
+
+    <br>
+    <a href="/">Back to Form</a>
+</body>
+</html>
+
