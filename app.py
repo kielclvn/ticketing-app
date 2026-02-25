@@ -3,7 +3,7 @@ import qrcode
 import uuid
 import os
 from PIL import Image
-import mysql.connector   # ✅ switched from sqlite3 to MySQL
+import psycopg2
 import zipfile
 import io
 import csv
@@ -20,11 +20,12 @@ os.makedirs("backups", exist_ok=True)
 
 # --- Database Connection ---
 def get_db_connection():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",   # adjust if you set a MySQL password
-        database="coe_event_system"
+    return psycopg2.connect(
+        host=os.environ["DB_HOST"],
+        user=os.environ["DB_USER"],
+        password=os.environ["DB_PASS"],
+        dbname=os.environ["DB_NAME"],
+        port=os.environ.get("DB_PORT", 5432)
     )
 
 # --- Simple User Accounts ---
@@ -53,7 +54,7 @@ def generate_ticket(section, ticket_type):
     output_path = f"tickets/{ticket_id}.png"
     template.save(output_path)
 
-    # Save to MySQL
+    # Save to Postgres
     conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO tickets (ticket_id, section, ticket_type, status) VALUES (%s, %s, %s, %s)",
