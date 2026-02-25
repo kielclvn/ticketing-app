@@ -183,6 +183,9 @@ def admin():
         return redirect(url_for("login"))
 
     section_filter = request.args.get("section")
+    status_filter = request.args.get("status")
+    search_query = request.args.get("search")
+    page_size = int(request.args.get("page_size", 10))
     ajax = request.args.get("ajax")
 
     conn = get_db_connection()
@@ -194,10 +197,25 @@ def admin():
         conn.close()
         return jsonify(logs)
 
+    query = "SELECT section, ticket_id, ticket_type, status FROM tickets WHERE 1=1"
+    params = []
+
     if section_filter:
-        c.execute("SELECT section, ticket_id, ticket_type, status FROM tickets WHERE section=%s ORDER BY ticket_id", (section_filter,))
-    else:
-        c.execute("SELECT section, ticket_id, ticket_type, status FROM tickets ORDER BY section, ticket_id")
+        query += " AND section=%s"
+        params.append(section_filter)
+
+    if status_filter:
+        query += " AND status=%s"
+        params.append(status_filter)
+
+    if search_query:
+        query += " AND ticket_id ILIKE %s"
+        params.append(f"%{search_query}%")
+
+    query += " ORDER BY section, ticket_id LIMIT %s"
+    params.append(page_size)
+
+    c.execute(query, tuple(params))
     rows = c.fetchall()
 
     grouped = {}
@@ -214,7 +232,10 @@ def admin():
     logs = c.fetchall()
     conn.close()
 
-    return render_template("admin.html", grouped=grouped, summary=summary, section_filter=section_filter, logs=logs)
+    return render_template("admin.html", grouped=grouped, summary=summary,
+                           section_filter=section_filter, logs=logs,
+                           search_query=search_query, status_filter=status_filter,
+                           page_size=page_size)
 
 # --- Run App ---
 if __name__ == "__main__":
