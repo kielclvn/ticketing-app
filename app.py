@@ -6,7 +6,6 @@ from PIL import Image
 import psycopg2
 import zipfile
 import io
-import csv
 import xlsxwriter
 import datetime
 
@@ -35,7 +34,7 @@ USERS = {
 }
 
 # --- Ticket Generator ---
-def generate_ticket(section, ticket_type):
+def generate_ticket(section, ticket_type, template):
     ticket_id = f"COE2026-{uuid.uuid4().hex[:6].upper()}"
 
     # Generate QR Code
@@ -43,16 +42,14 @@ def generate_ticket(section, ticket_type):
     qr = qr.resize((340, 340))
     qr = qr.convert("RGBA")
 
-    # Load template
-    template = Image.open("ticket_template.png").convert("RGBA")
-
-    # Paste QR under "SCAN ME!"
+    # Clone template for each ticket
+    ticket_img = template.copy()
     x, y = 1600, 190
-    template.paste(qr, (x, y), qr)
+    ticket_img.paste(qr, (x, y), qr)
 
     # Save final ticket
     output_path = f"tickets/{ticket_id}.png"
-    template.save(output_path)
+    ticket_img.save(output_path)
 
     # Save to Postgres
     conn = get_db_connection()
@@ -103,9 +100,12 @@ def generate():
     count = int(request.form["count"])
     ticket_type = request.form["ticket_type"]
 
+    # Load template once
+    template = Image.open("ticket_template.png").convert("RGBA")
+
     generated_ids = []
     for i in range(count):
-        ticket_id, output_path = generate_ticket(section, ticket_type)
+        ticket_id, output_path = generate_ticket(section, ticket_type, template)
         generated_ids.append((ticket_id, output_path))
 
     session["last_results"] = {
@@ -159,6 +159,8 @@ def verify():
     ticket_id = request.json.get("ticket_id")
     conn = get_db_connection()
     c = conn.cursor()
+
+    # Faster query with index
     c.execute("SELECT status FROM tickets WHERE ticket_id=%s", (ticket_id,))
     row = c.fetchone()
 
@@ -168,7 +170,6 @@ def verify():
         result = {"status": "invalid", "message": "⚠️ Ticket already used"}
     else:
         c.execute("UPDATE tickets SET status='used' WHERE ticket_id=%s", (ticket_id,))
-        conn.commit()
         result = {"status": "valid", "message": "✅ Ticket accepted"}
 
     c.execute("INSERT INTO scans (ticket_id, status) VALUES (%s, %s)", (ticket_id, result["status"]))
@@ -236,6 +237,20 @@ def admin():
                            section_filter=section_filter, logs=logs,
                            search_query=search_query, status_filter=status_filter,
                            page_size=page_size)
+
+# --- Reset Route ---
+@app.route("/reset")
+def reset():
+    if "role" not in session or session["role"] != "admin":
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM tickets")
+    c.execute("DELETE FROM scans")
+    conn.commit()
+    conn.close()
+    return redirect(url_for("admin"))
 
 # --- Run App ---
 if __name__ == "__main__":

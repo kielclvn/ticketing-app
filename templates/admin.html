@@ -76,6 +76,13 @@
     <!-- Global Search/Filter Form -->
     <div class="search-box">
         <form method="get" action="/admin">
+            <select name="section">
+                <option value="">-- All Sections --</option>
+                {% for section in grouped.keys() %}
+                    <option value="{{ section }}" {% if section_filter==section %}selected{% endif %}>{{ section }}</option>
+                {% endfor %}
+            </select>
+
             <input type="text" name="search" placeholder="Search Ticket ID..." value="{{ search_query or '' }}">
             <select name="status">
                 <option value="">-- All Status --</option>
