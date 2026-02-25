@@ -6,6 +6,7 @@ from PIL import Image
 import psycopg2
 import zipfile
 import io
+import csv
 import xlsxwriter
 import datetime
 
@@ -104,9 +105,14 @@ def generate():
     template = Image.open("ticket_template.png").convert("RGBA")
 
     generated_ids = []
-    for i in range(count):
-        ticket_id, output_path = generate_ticket(section, ticket_type, template)
-        generated_ids.append((ticket_id, output_path))
+    batch_size = 10
+
+    # Generate tickets in batches of 10
+    for start in range(0, count, batch_size):
+        end = min(start + batch_size, count)
+        for i in range(start, end):
+            ticket_id, output_path = generate_ticket(section, ticket_type, template)
+            generated_ids.append((ticket_id, output_path))
 
     session["last_results"] = {
         "section": section,
@@ -160,7 +166,6 @@ def verify():
     conn = get_db_connection()
     c = conn.cursor()
 
-    # Faster query with index
     c.execute("SELECT status FROM tickets WHERE ticket_id=%s", (ticket_id,))
     row = c.fetchone()
 
@@ -178,6 +183,7 @@ def verify():
 
     return jsonify(result)
 
+# --- Admin Dashboard ---
 @app.route("/admin")
 def admin():
     if "role" not in session or session["role"] != "admin":
@@ -251,6 +257,107 @@ def reset():
     conn.commit()
     conn.close()
     return redirect(url_for("admin"))
+
+# --- Export Routes ---
+@app.route("/export_csv")
+def export_csv():
+    section = request.args.get("section")
+    conn = get_db_connection()
+    c = conn.cursor()
+    if section:
+        c.execute("SELECT ticket_id, section, ticket_type, status FROM tickets WHERE section=%s", (section,))
+    else:
+        c.execute("SELECT ticket_id, section, ticket_type, status FROM tickets")
+    rows = c.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Ticket ID", "Section", "Type", "Status"])
+    for r in rows:
+        writer.writerow(r)
+
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode("utf-8")),
+                     mimetype="text/csv",
+                     as_attachment=True,
+                     download_name="tickets.csv")
+
+@app.route("/export_excel")
+def export_excel():
+    section = request.args.get("section")
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+    worksheet = workbook.add_worksheet()
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    if section:
+        c.execute("SELECT ticket_id, section, ticket_type, status FROM tickets WHERE section=%s", (section,))
+    else:
+        c.execute("SELECT ticket_id, section, ticket_type, status FROM tickets")
+    rows = c.fetchall()
+    conn.close()
+
+    headers = ["Ticket ID", "Section", "Type", "Status"]
+    for col, h in enumerate(headers):
+        worksheet.write(0, col, h)
+    for row_idx, row in enumerate(rows, start=1):
+        for col_idx, val in enumerate(row):
+            worksheet.write(row_idx, col_idx, val)
+
+    workbook.close()
+    output.seek(0)
+    return send_file(output,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                     as_attachment=True,
+                     download_name="tickets.xlsx")
+
+@app.route("/export_logs_csv")
+def export_logs_csv():
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT ticket_id, status, timestamp FROM scans ORDER BY timestamp DESC")
+    rows = c.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Ticket ID", "Status", "Timestamp"])
+    for r in rows:
+        writer.writerow(r)
+
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode("utf-8")),
+                     mimetype="text/csv",
+                     as_attachment=True,
+                     download_name="scan_logs.csv")
+
+@app.route("/export_logs_excel")
+def export_logs_excel():
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+    worksheet = workbook.add_worksheet()
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT ticket_id, status, timestamp FROM scans ORDER BY timestamp DESC")
+    rows = c.fetchall()
+    conn.close()
+
+    headers = ["Ticket ID", "Status", "Timestamp"]
+    for col, h in enumerate(headers):
+        worksheet.write(0, col, h)
+    for row_idx, row in enumerate(rows, start=1):
+        for col_idx, val in enumerate(row):
+            worksheet.write(row_idx, col_idx, val)
+
+    workbook.close()
+    output.seek(0)
+    return send_file(output,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                     as_attachment=True,
+                     download_name="scan_logs.xlsx")
 
 # --- Run App ---
 if __name__ == "__main__":
