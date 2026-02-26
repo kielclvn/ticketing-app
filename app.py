@@ -233,7 +233,6 @@ def admin():
     sections = [row[0] for row in c.fetchall()]
     conn.close()
 
-    # ✅ Get and clear message from session
     message = session.pop("message", None)
 
     return render_template("admin.html", grouped=grouped, summary=summary,
@@ -242,7 +241,7 @@ def admin():
                            page_size=page_size, sections=sections,
                            message=message)
 
-# --- Delete Ticket ---
+# --- Delete Ticket (with logs) ---
 @app.route("/delete_ticket/<ticket_id>", methods=["POST"])
 def delete_ticket(ticket_id):
     if "role" not in session or session["role"] != "admin":
@@ -250,11 +249,14 @@ def delete_ticket(ticket_id):
 
     conn = get_db_connection()
     c = conn.cursor()
+    # Delete ticket
     c.execute("DELETE FROM tickets WHERE ticket_id=%s", (ticket_id,))
+    # Also delete scans related to that ticket
+    c.execute("DELETE FROM scans WHERE ticket_id=%s", (ticket_id,))
     conn.commit()
     conn.close()
 
-    session["message"] = f"✅ Ticket {ticket_id} deleted successfully."
+    session["message"] = f"✅ Ticket {ticket_id} and its scan logs deleted successfully."
     return redirect(url_for("admin"))
 
 # --- Reset ---
