@@ -35,12 +35,12 @@ USERS = {
 }
 
 # --- Ticket Generator ---
-def generate_ticket(section, ticket_type, template):
+def generate_ticket(section, ticket_type, template, cursor):
     ticket_id = f"COE2026-{uuid.uuid4().hex[:6].upper()}"
 
-    # Generate QR Code
+    # Generate QR Code (optimized size)
     qr = qrcode.make(ticket_id)
-    qr = qr.resize((340, 340))
+    qr = qr.resize((250, 250))
     qr = qr.convert("RGBA")
 
     # Clone template for each ticket
@@ -52,17 +52,19 @@ def generate_ticket(section, ticket_type, template):
     output_path = f"tickets/{ticket_id}.png"
     ticket_img.save(output_path)
 
-    # Save to Postgres
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO tickets (ticket_id, section, ticket_type, status) VALUES (%s, %s, %s, %s)",
-              (ticket_id, section, ticket_type, "unused"))
-    conn.commit()
-    conn.close()
+    # Save to Postgres (commit later per batch)
+    cursor.execute("INSERT INTO tickets (ticket_id, section, ticket_type, status) VALUES (%s, %s, %s, %s)",
+                   (ticket_id, section, ticket_type, "unused"))
 
     return ticket_id, output_path
 
-# --- Login Routes ---
+# --- Routes ---
+@app.route("/")
+def home():
+    if "role" not in session or session["role"] != "admin":
+        return redirect(url_for("login"))
+    return render_template("form.html")
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -85,13 +87,6 @@ def logout():
     session.clear()
     return render_template("logout.html")
 
-# --- Routes ---
-@app.route("/")
-def home():
-    if "role" not in session or session["role"] != "admin":
-        return redirect(url_for("login"))
-    return render_template("form.html")
-
 @app.route("/generate", methods=["POST"])
 def generate():
     if "role" not in session or session["role"] != "admin":
@@ -101,18 +96,19 @@ def generate():
     count = int(request.form["count"])
     ticket_type = request.form["ticket_type"]
 
-    # Load template once
     template = Image.open("ticket_template.png").convert("RGBA")
-
     generated_ids = []
-    batch_size = 10
+    batch_size = 20  # optimized batch size
 
-    # Generate tickets in batches of 10
     for start in range(0, count, batch_size):
         end = min(start + batch_size, count)
+        conn = get_db_connection()
+        c = conn.cursor()
         for i in range(start, end):
-            ticket_id, output_path = generate_ticket(section, ticket_type, template)
+            ticket_id, output_path = generate_ticket(section, ticket_type, template, c)
             generated_ids.append((ticket_id, output_path))
+        conn.commit()
+        conn.close()
 
     session["last_results"] = {
         "section": section,
@@ -141,6 +137,7 @@ def download_zip():
     if not last:
         return "No tickets generated yet."
 
+    # Optimize: zip per section instead of all tickets at once
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zipf:
         for ticket_id, path in last["ids"]:

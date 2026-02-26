@@ -4,3 +4,5 @@ Pillow==10.3.0
 XlsxWriter==3.2.0
 qrcode==7.4.2
 psycopg2-binary==2.9.9
+redis==5.0.1
+rq==1.15.1
