@@ -8,7 +8,6 @@ import zipfile
 import io
 import csv
 import xlsxwriter
-import datetime
 
 app = Flask(__name__)
 app.secret_key = "secret_key_for_session"
@@ -38,21 +37,17 @@ USERS = {
 def generate_ticket(section, ticket_type, template, cursor):
     ticket_id = f"COE2026-{uuid.uuid4().hex[:6].upper()}"
 
-    # Generate QR Code (optimized size)
     qr = qrcode.make(ticket_id)
     qr = qr.resize((250, 250))
     qr = qr.convert("RGBA")
 
-    # Clone template for each ticket
     ticket_img = template.copy()
     x, y = 1600, 190
     ticket_img.paste(qr, (x, y), qr)
 
-    # Save final ticket
     output_path = f"tickets/{ticket_id}.png"
     ticket_img.save(output_path)
 
-    # Save to Postgres (commit later per batch)
     cursor.execute("INSERT INTO tickets (ticket_id, section, ticket_type, status) VALUES (%s, %s, %s, %s)",
                    (ticket_id, section, ticket_type, "unused"))
 
@@ -98,7 +93,7 @@ def generate():
 
     template = Image.open("ticket_template.png").convert("RGBA")
     generated_ids = []
-    batch_size = 20  # optimized batch size
+    batch_size = 20
 
     for start in range(0, count, batch_size):
         end = min(start + batch_size, count)
@@ -137,7 +132,6 @@ def download_zip():
     if not last:
         return "No tickets generated yet."
 
-    # Optimize: zip per section instead of all tickets at once
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zipf:
         for ticket_id, path in last["ids"]:
@@ -234,14 +228,32 @@ def admin():
 
     c.execute("SELECT ticket_id, status, timestamp FROM scans ORDER BY timestamp DESC LIMIT 20")
     logs = c.fetchall()
+
+    c.execute("SELECT DISTINCT section FROM tickets ORDER BY section")
+    sections = [row[0] for row in c.fetchall()]
     conn.close()
 
     return render_template("admin.html", grouped=grouped, summary=summary,
                            section_filter=section_filter, logs=logs,
                            search_query=search_query, status_filter=status_filter,
-                           page_size=page_size)
+                           page_size=page_size, sections=sections)
 
-# --- Reset Route ---
+# --- Delete Ticket ---
+@app.route("/delete_ticket/<ticket_id>", methods=["POST"])
+def delete_ticket(ticket_id):
+    if "role" not in session or session["role"] != "admin":
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM tickets WHERE ticket_id=%s", (ticket_id,))
+    conn.commit()
+    conn.close()
+
+    session["message"] = f"✅ Ticket {ticket_id} deleted successfully."
+    return redirect(url_for("admin"))
+
+# --- Reset ---
 @app.route("/reset")
 def reset():
     if "role" not in session or session["role"] != "admin":
@@ -253,6 +265,8 @@ def reset():
     c.execute("DELETE FROM scans")
     conn.commit()
     conn.close()
+
+    session["message"] = "🗑️ All tickets and logs cleared."
     return redirect(url_for("admin"))
 
 # --- Export Routes ---

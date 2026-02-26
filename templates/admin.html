@@ -32,6 +32,8 @@
         }
         button { background: #4CAF50; color: white; cursor: pointer; font-weight: bold; }
         button:hover { background: #45a049; }
+        .delete-btn { background:#d9534f; }
+        .delete-btn:hover { background:#c9302c; }
         .export-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 15px auto; width: 95%; }
         .export-buttons form { flex: 1 1 auto; min-width: 140px; }
         .export-buttons button { width: 100%; }
@@ -39,36 +41,48 @@
         .search-box input, .search-box select { flex: 1 1 auto; min-width: 120px; }
         .flash-row { animation: highlight 1.5s ease; }
         @keyframes highlight { from { background-color: #ffff99; } to { background-color: transparent; } }
+        .message-box {
+            background:#dff0d8; color:#3c763d; padding:10px; margin:10px auto;
+            width:95%; border-radius:5px; text-align:center; font-weight:bold;
+        }
     </style>
 </head>
 <body>
     <h1>📊 Admin Dashboard</h1>
 
+    <!-- Success Message -->
+    {% if session.message %}
+    <div class="message-box">
+        {{ session.message }}
+    </div>
+    {% set session.message = None %}
+    {% endif %}
+
     <!-- Export + Reset Buttons -->
     <div class="export-buttons">
-        <form method="get" action="/export_csv" style="display:inline;">
+        <form method="get" action="/export_csv">
             {% if section_filter %}
                 <input type="hidden" name="section" value="{{ section_filter }}">
             {% endif %}
             <button type="submit">⬇️ Export Tickets to CSV</button>
         </form>
 
-        <form method="get" action="/export_excel" style="display:inline;">
+        <form method="get" action="/export_excel">
             {% if section_filter %}
                 <input type="hidden" name="section" value="{{ section_filter }}">
             {% endif %}
             <button type="submit">⬇️ Export Tickets to Excel</button>
         </form>
 
-        <form method="get" action="/export_logs_csv" style="display:inline;">
+        <form method="get" action="/export_logs_csv">
             <button type="submit">⬇️ Export Scan Logs to CSV</button>
         </form>
 
-        <form method="get" action="/export_logs_excel" style="display:inline;">
+        <form method="get" action="/export_logs_excel">
             <button type="submit">⬇️ Export Scan Logs to Excel</button>
         </form>
 
-        <form method="get" action="/reset" style="display:inline;">
+        <form method="get" action="/reset">
             <button type="submit" style="background:#d9534f;">🗑️ Reset Database</button>
         </form>
     </div>
@@ -78,8 +92,8 @@
         <form method="get" action="/admin">
             <select name="section">
                 <option value="">-- All Sections --</option>
-                {% for section in grouped.keys() %}
-                    <option value="{{ section }}" {% if section_filter==section %}selected{% endif %}>{{ section }}</option>
+                {% for s in sections %}
+                    <option value="{{ s }}" {% if section_filter==s %}selected{% endif %}>{{ s }}</option>
                 {% endfor %}
             </select>
 
@@ -116,6 +130,7 @@
                     <th>Ticket ID</th>
                     <th>Type</th>
                     <th>Status</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -124,6 +139,11 @@
                     <td>{{ ticket[0] }}</td>
                     <td>{{ ticket[1] }}</td>
                     <td class="{{ ticket[2] }}">{{ ticket[2] }}</td>
+                    <td>
+                        <form action="{{ url_for('delete_ticket', ticket_id=ticket[0]) }}" method="post" style="display:inline;">
+                            <button type="submit" class="delete-btn" onclick="return confirm('Delete this ticket?')">🗑️ Delete</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
