@@ -51,10 +51,10 @@
     <h1>📊 Admin Dashboard</h1>
 
     {% if message %}
-<div class="message-box">
-    {{ message }}
-</div>
-{% endif %}
+    <div class="message-box">
+        {{ message }}
+    </div>
+    {% endif %}
 
     <!-- Export + Reset Buttons -->
     <div class="export-buttons">
@@ -158,6 +158,7 @@
                     <th>Ticket ID</th>
                     <th>Status</th>
                     <th>Timestamp</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -166,6 +167,11 @@
                     <td>{{ log[0] }}</td>
                     <td class="{{ log[1] }}">{{ log[1] }}</td>
                     <td>{{ log[2] }}</td>
+                    <td>
+                        <form action="{{ url_for('delete_scan', ticket_id=log[0]) }}" method="post" style="display:inline;">
+                            <button type="submit" class="delete-btn" onclick="return confirm('Delete this scan log?')">🗑️ Delete Scan</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -186,6 +192,11 @@
                             <td>${log[0]}</td>
                             <td class="${log[1]}">${log[1]}</td>
                             <td>${log[2]}</td>
+                            <td>
+                                <form action="/delete_scan/${log[0]}" method="post" style="display:inline;">
+                                    <button type="submit" class="delete-btn" onclick="return confirm('Delete this scan log?')">🗑️ Delete Scan</button>
+                                </form>
+                            </td>
                         `;
                         tbody.appendChild(row);
                         row.classList.add("flash-row");

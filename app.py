@@ -259,6 +259,22 @@ def delete_ticket(ticket_id):
     session["message"] = f"✅ Ticket {ticket_id} and its scan logs deleted successfully."
     return redirect(url_for("admin"))
 
+# --- Delete Scan Only ---
+@app.route("/delete_scan/<ticket_id>", methods=["POST"])
+def delete_scan(ticket_id):
+    if "role" not in session or session["role"] != "admin":
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    # Delete scan logs for this ticket
+    c.execute("DELETE FROM scans WHERE ticket_id=%s", (ticket_id,))
+    conn.commit()
+    conn.close()
+
+    session["message"] = f"🗑️ Scan logs for ticket {ticket_id} deleted successfully."
+    return redirect(url_for("admin"))
+
 # --- Reset ---
 @app.route("/reset")
 def reset():
