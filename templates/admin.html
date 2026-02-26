@@ -50,13 +50,11 @@
 <body>
     <h1>📊 Admin Dashboard</h1>
 
-    <!-- Success Message -->
-    {% if session.message %}
-    <div class="message-box">
-        {{ session.message }}
-    </div>
-    {% set session.message = None %}
-    {% endif %}
+    {% if message %}
+<div class="message-box">
+    {{ message }}
+</div>
+{% endif %}
 
     <!-- Export + Reset Buttons -->
     <div class="export-buttons">

@@ -233,10 +233,14 @@ def admin():
     sections = [row[0] for row in c.fetchall()]
     conn.close()
 
+    # ✅ Get and clear message from session
+    message = session.pop("message", None)
+
     return render_template("admin.html", grouped=grouped, summary=summary,
                            section_filter=section_filter, logs=logs,
                            search_query=search_query, status_filter=status_filter,
-                           page_size=page_size, sections=sections)
+                           page_size=page_size, sections=sections,
+                           message=message)
 
 # --- Delete Ticket ---
 @app.route("/delete_ticket/<ticket_id>", methods=["POST"])
